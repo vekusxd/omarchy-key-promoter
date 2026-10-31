@@ -75,6 +75,7 @@ Item {
   property bool launchWatchOk: false
   property int launchWatchRetries: 0
   property double launcherAt: 0
+  property string launcherDesktop: ""
 
   function applySettings(raw) {
     try {
@@ -137,6 +138,13 @@ Item {
     return !launchWatchOk || launcherAt >= armedAt - 1000
   }
 
+  // Every Terminal=true app (btop, nvim...) opens a terminal window too, so the
+  // terminal's own bind only counts when its desktop entry is what was launched.
+  function launchedEntryFits(bind) {
+    if (!launchWatchOk || bind.sig.cmd !== "omarchy-launch-terminal") return true
+    return launcherDesktop.toLowerCase() === bind.sig.value
+  }
+
   function promote(bind) {
     disarm()
     toast.show(bind.combo, bind.description, bump(bind.combo))
@@ -160,7 +168,7 @@ Item {
         var cls = parts.length > 2 ? parts[2] : ""
         var entry = cls ? DesktopEntries.heuristicLookup(cls) : null
         var hit = Promoter.matchWindow(service.activeBinds, cls, entry)
-        if (hit && service.fromLauncher()) service.promote(hit)
+        if (hit && service.fromLauncher() && service.launchedEntryFits(hit)) service.promote(hit)
       } else if (name === "openlayer") {
         // The menu reopened (submenu, launcher); wait for what it does next.
         if (data === "omarchy-menu") { service.disarm(); return }
@@ -203,10 +211,24 @@ Item {
     }
   }
 
-  // Scope directories appearing under the app slice, one name per line.
+  // Scope directories appearing under the app slice, one name per line. For a
+  // launcher scope, a "desktop <id>" line follows once gtk-launch shows up in it.
   Process {
     id: launchWatch
-    command: ["inotifywait", "-m", "-q", "-e", "create", "--format", "%f", service.appSlice]
+    command: ["bash", "-c", [
+      "command -v inotifywait >/dev/null || exit 1",
+      "inotifywait -m -q -e create --format '%f' \"$1\" | while read -r name; do",
+      "  echo \"$name\"",
+      "  case $name in *gtk*launch*) ;; *) continue ;; esac",
+      "  for _ in 1 2 3 4 5 6 7 8 9 10; do",
+      "    for pid in $(cat \"$1/$name/cgroup.procs\" 2>/dev/null); do",
+      "      id=$(tr '\\0' '\\n' < \"/proc/$pid/cmdline\" 2>/dev/null | grep -m1 '\\.desktop$')",
+      "      if [ -n \"$id\" ]; then echo \"desktop ${id%.desktop}\"; continue 3; fi",
+      "    done",
+      "    sleep 0.02",
+      "  done",
+      "done"
+    ].join("\n"), "launch-watch", service.appSlice]
     onStarted: { service.launchWatchOk = true; service.launchWatchRetries = 0 }
     onExited: {
       service.launchWatchOk = false
@@ -214,7 +236,10 @@ Item {
       else console.warn("key-promoter: launch watcher gave up; falling back to the time window alone")
     }
     stdout: SplitParser {
-      onRead: function(line) { if (Promoter.isLauncherScope(line)) service.launcherAt = Date.now() }
+      onRead: function(line) {
+        if (line.indexOf("desktop ") === 0) service.launcherDesktop = line.slice(8)
+        else if (Promoter.isLauncherScope(line)) { service.launcherAt = Date.now(); service.launcherDesktop = "" }
+      }
     }
     stderr: StdioCollector { onStreamFinished: if (text.length) console.warn("key-promoter inotifywait:", text) }
   }
@@ -271,7 +296,8 @@ Item {
         launchWatch: service.launchWatchOk,
         appSlice: service.appSlice,
         shellMarker: service.shellMarker,
-        msSinceLauncher: service.launcherAt ? Date.now() - service.launcherAt : null
+        msSinceLauncher: service.launcherAt ? Date.now() - service.launcherAt : null,
+        launcherDesktop: service.launcherDesktop
       })
     }
     function resolved(): string {

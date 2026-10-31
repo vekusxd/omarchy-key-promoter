@@ -63,7 +63,9 @@ also has to show it came from the shell:
   `uwsm-app -- gtk-launch`, and systemd registers that as a scope named
   `app-*-gtk\x2dlaunch-*.scope`. An `inotifywait` on the user's `app-graphical.slice`
   cgroup directory sees that scope appear a moment before the window does. No scope, no
-  toast. (Tracing the window back to a process would not work: a new Chromium window
+  toast. The scope also shows which desktop entry `gtk-launch` started, so a
+  Terminal=true app (btop, nvim) opening a terminal window does not promote the
+  terminal's own shortcut. (Tracing the window back to a process would not work: a new Chromium window
   belongs to the browser that was already running, however it was asked for.)
 - **Scripts.** A process the shell started inherits the shell's environment, which
   `omarchy-launch-shell` marks with `QS_*` variables Hyprland's own environment never has.
