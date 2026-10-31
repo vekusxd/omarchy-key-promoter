@@ -80,7 +80,7 @@ function signatureForCommand(command, defaults) {
   }
   if (t0 === "omarchy-launch-browser") return { kind: "app", value: String(d.browser || "").toLowerCase(), cmd: t0 }
   if (t0 === "omarchy-launch-nautilus" || t0 === "omarchy-launch-nautilus-cwd") return { kind: "app", value: "nautilus", cmd: t0 }
-  if (t0 === "omarchy-launch-terminal") return { kind: "cmd", cmd: t0 }
+  if (t0 === "omarchy-launch-terminal") return { kind: "cmd", value: String(d.terminal || "").toLowerCase(), cmd: t0 }
   if (t0.indexOf("omarchy-menu") === 0) return { kind: "menu", cmd: t0 }
   if (t0 === "omarchy-shell") {
     for (var i = 1; i < tokens.length; i++) {
