@@ -90,6 +90,9 @@ function signatureForCommand(command, defaults) {
     }
     return null
   }
+  // omarchy-launch-<app> (spotify, signal, ...) also opens <app>'s window, which
+  // the app list can start directly without running the script.
+  if (t0.indexOf("omarchy-launch-") === 0) return { kind: "cmd", value: t0.slice(15).toLowerCase(), cmd: t0 }
   if (t0.indexOf("omarchy-") === 0) return { kind: "cmd", cmd: t0 }
   return { kind: "app", value: t0.toLowerCase(), cmd: t0 }
 }
@@ -169,7 +172,7 @@ function matchWindow(binds, cls, entry) {
     var s = binds[i].sig
     if (!s) continue
     var score = 0
-    if (s.kind === "app" && s.value) {
+    if ((s.kind === "app" || s.kind === "cmd") && s.value) {
       if (s.value === c) score = 20
       else if (entryCmd && s.value === entryCmd) score = 15
       else if (entryId && s.value === entryId) score = 12
