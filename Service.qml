@@ -42,15 +42,18 @@ Item {
   readonly property string statePath: home + "/.local/state/omarchy/key-promoter.json"
 
   // Settings, inline on this plugin's entry in ~/.config/omarchy/shell.json:
-  //   { "id": "fkcodes.key-promoter", "duration": 3500, "position": "bottom-right", "window": 3000, "showCount": true }
+  //   { "id": "fkcodes.key-promoter", "duration": 3500, "position": "bottom-right", "window": 3000, "showCount": true, "ignore": ["SUPER SHIFT + B"] }
+  // ignore: combos never to promote, e.g. a duplicate shortcut you don't use
   // position: top-left | top-center | top-right | bottom-left | bottom-center | bottom-right
   property int duration: 3500
   property string position: "bottom-right"
   readonly property var positions: ["top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right"]
   property int window: 3000
   property bool showCount: true
+  property var ignore: []
 
   property var binds: []
+  readonly property var activeBinds: binds.filter(function(b) { return ignore.indexOf(Promoter.normalizeCombo(b.combo)) === -1 })
   property var counts: ({})
   property double armedAt: 0
   property int psRuns: 0
@@ -88,6 +91,7 @@ Item {
         }
         if (e.window !== undefined) window = Math.max(500, parseInt(e.window, 10) || 3000)
         if (e.showCount !== undefined) showCount = e.showCount !== false
+        ignore = Array.isArray(e.ignore) ? e.ignore.map(Promoter.normalizeCombo) : []
         return
       }
     } catch (err) {}
@@ -155,12 +159,12 @@ Item {
         var parts = event.parse(4)
         var cls = parts.length > 2 ? parts[2] : ""
         var entry = cls ? DesktopEntries.heuristicLookup(cls) : null
-        var hit = Promoter.matchWindow(service.binds, cls, entry)
+        var hit = Promoter.matchWindow(service.activeBinds, cls, entry)
         if (hit && service.fromLauncher()) service.promote(hit)
       } else if (name === "openlayer") {
         // The menu reopened (submenu, launcher); wait for what it does next.
         if (data === "omarchy-menu") { service.disarm(); return }
-        var layerHit = Promoter.matchLayer(service.binds, data)
+        var layerHit = Promoter.matchLayer(service.activeBinds, data)
         if (layerHit) service.promote(layerHit)
       }
     }
@@ -193,7 +197,7 @@ Item {
     stdout: StdioCollector {
       onStreamFinished: {
         if (!service.armed()) return
-        var hit = Promoter.matchProcesses(service.binds, text, 3, service.shellMarker !== "")
+        var hit = Promoter.matchProcesses(service.activeBinds, text, 3, service.shellMarker !== "")
         if (hit) service.promote(hit)
       }
     }

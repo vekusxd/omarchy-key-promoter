@@ -83,7 +83,7 @@ buttons, not shortcuts to learn, and many keyboards lack them.
 Inline on the plugin entry in `~/.config/omarchy/shell.json` (hot-reloads on save):
 
 ```json
-{ "id": "fkcodes.key-promoter", "duration": 3500, "position": "bottom-right", "window": 3000, "showCount": true }
+{ "id": "fkcodes.key-promoter", "duration": 3500, "position": "bottom-right", "window": 3000, "showCount": true, "ignore": ["SUPER SHIFT + B"] }
 ```
 
 | Key         | Default | Meaning                                                   |
@@ -92,6 +92,7 @@ Inline on the plugin entry in `~/.config/omarchy/shell.json` (hot-reloads on sav
 | `position`  | `bottom-right` | `top-left`, `top-center`, `top-right`, `bottom-left`, `bottom-center`, `bottom-right`. Clears the bar on a shared edge. |
 | `window`    | `3000`  | milliseconds after the menu closes during which a launch counts |
 | `showCount` | `true`  | show `×N` for how often that shortcut has been promoted   |
+| `ignore`    | `[]`    | combos never to promote, e.g. a duplicate shortcut you don't use; the next best bind is shown instead |
 
 ## IPC
 

@@ -136,6 +136,11 @@ function modCount(combo) {
   return parts[0].split(/\s+/).filter(function(p) { return p.length }).length
 }
 
+// "super shift+b" -> "SUPER SHIFT + B", so settings can name combos loosely.
+function normalizeCombo(combo) {
+  return String(combo || "").toUpperCase().replace(/\s*\+\s*/, " + ").replace(/\s+/g, " ").trim()
+}
+
 // Among several binds that do the same thing, promote the cheapest one.
 function pick(candidates) {
   var best = null
